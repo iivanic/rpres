@@ -157,6 +157,7 @@ pub const JS: &str = r#"
       case 'ArrowRight':
       case 'PageDown':
       case ' ':
+      case 'Enter':
       case 'l':
         e.preventDefault(); next(); break;
       case 'ArrowLeft':
