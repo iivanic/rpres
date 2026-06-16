@@ -1,5 +1,6 @@
 //! End-to-end tests exercising the public API on the demo presentation.
 
+use rpres::export::{ExportOptions, export_pdf};
 use rpres::render::{build_page, slide_html};
 use rpres::server::{App, route};
 use rpres::slides::parse_slides;
@@ -58,3 +59,25 @@ fn every_template_renders() {
         assert!(page.contains("data-anim=\"1\""));
     }
 }
+
+#[test]
+fn demo_exports_to_valid_pdf() {
+    let slides = parse_slides(DEMO);
+    let opts = ExportOptions {
+        title: "Demo".to_string(),
+        pdfa: true,
+        base_dir: std::path::PathBuf::from("."),
+        font_path: None,
+    };
+    let bytes = match export_pdf(&slides, &opts) {
+        Ok(b) => b,
+        // No embeddable system font available (e.g. minimal CI image): skip.
+        Err(e) if e.contains("font") => return,
+        Err(e) => panic!("export failed: {e}"),
+    };
+    assert!(bytes.starts_with(b"%PDF"), "missing PDF header");
+    assert!(bytes.len() > 5_000, "PDF unexpectedly small: {} bytes", bytes.len());
+    let eof = bytes.windows(5).any(|w| w == b"%%EOF");
+    assert!(eof, "missing %%EOF trailer");
+}
+

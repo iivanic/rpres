@@ -8,6 +8,7 @@ description = "A simple CLI tool that renders a Markdown file as a browser prese
 clap = { version = "4", features = ["derive"] }
 tiny_http = "0.12"
 pulldown-cmark = "0.12"
+printpdf = { version = "0.9.1", default-features = false, features = ["text_layout", "png", "jpeg"] }
 
 [lib]
 name = "rpres"
