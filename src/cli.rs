@@ -31,18 +31,6 @@ pub struct Cli {
     #[arg(short = 'p', long = "paged")]
     pub paged: bool,
 
-    /// [EXPERIMENTAL] Export the presentation to a PDF file (one slide per page) and exit.
-    #[arg(short = 'e', long = "export", value_name = "PDF")]
-    pub export: Option<PathBuf>,
-
-    /// Path to a TrueType font to embed in the exported PDF.
-    #[arg(long = "font", value_name = "TTF")]
-    pub font: Option<PathBuf>,
-
-    /// Disable PDF/A-1b conformance tagging when exporting.
-    #[arg(long = "no-pdfa")]
-    pub no_pdfa: bool,
-
     /// IP address to bind the server to.
     #[arg(short = 's', long = "server", default_value = "127.0.0.1")]
     pub server: String,

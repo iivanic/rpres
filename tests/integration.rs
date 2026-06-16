@@ -1,6 +1,5 @@
 //! End-to-end tests exercising the public API on the demo presentation.
 
-use rpres::export::{ExportOptions, export_pdf};
 use rpres::render::{build_page, slide_html};
 use rpres::server::{App, route};
 use rpres::slides::parse_slides;
@@ -61,23 +60,20 @@ fn every_template_renders() {
 }
 
 #[test]
-fn demo_exports_to_valid_pdf() {
+fn page_includes_print_stylesheet() {
     let slides = parse_slides(DEMO);
-    let opts = ExportOptions {
-        title: "Demo".to_string(),
-        pdfa: true,
-        base_dir: std::path::PathBuf::from("."),
-        font_path: None,
-    };
-    let bytes = match export_pdf(&slides, &opts) {
-        Ok(b) => b,
-        // No embeddable system font available (e.g. minimal CI image): skip.
-        Err(e) if e.contains("font") => return,
-        Err(e) => panic!("export failed: {e}"),
-    };
-    assert!(bytes.starts_with(b"%PDF"), "missing PDF header");
-    assert!(bytes.len() > 5_000, "PDF unexpectedly small: {} bytes", bytes.len());
-    let eof = bytes.windows(5).any(|w| w == b"%%EOF");
-    assert!(eof, "missing %%EOF trailer");
+    let page = build_page("Demo", "modern", &slides, false, false);
+    // Print mode relies on @media print page-break rules being embedded.
+    assert!(page.contains("@media print"));
+    assert!(page.contains("break-after: page"));
+}
+
+#[test]
+fn print_mode_embeds_every_slide() {
+    let slides = parse_slides(DEMO);
+    // Print mode is non-paged, so the full deck must be in the document.
+    let page = build_page("Demo", "modern", &slides, false, false);
+    let count = page.matches("<section class=\"slide").count();
+    assert_eq!(count, slides.len());
 }
 

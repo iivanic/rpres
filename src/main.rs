@@ -1,6 +1,5 @@
 use clap::Parser;
 use rpres::cli::Cli;
-use rpres::export::{ExportOptions, write_pdf_file};
 use rpres::render::{build_page, slide_html};
 use rpres::server::{App, serve};
 use rpres::slides::parse_slides;
@@ -59,34 +58,6 @@ fn main() -> ExitCode {
                 .map(|s| s.to_string_lossy().into_owned())
                 .unwrap_or_else(|| "rpres".to_string())
         });
-
-    if let Some(out) = &cli.export {
-        let base_dir = path
-            .parent()
-            .map(|p| p.to_path_buf())
-            .unwrap_or_else(|| std::path::PathBuf::from("."));
-        let opts = ExportOptions {
-            title: title.clone(),
-            pdfa: !cli.no_pdfa,
-            base_dir,
-            font_path: cli.font.clone(),
-        };
-        match write_pdf_file(&slides, out, &opts) {
-            Ok(()) => {
-                println!(
-                    "rpres: exported {} slide(s) to {}{}",
-                    slides.len(),
-                    out.display(),
-                    if opts.pdfa { " (PDF/A-1b)" } else { "" }
-                );
-                return ExitCode::SUCCESS;
-            }
-            Err(err) => {
-                eprintln!("error: export failed: {err}");
-                return ExitCode::FAILURE;
-            }
-        }
-    }
 
     let page = build_page(&title, &cli.template, &slides, cli.click, cli.paged);
     let slide_fragments = if cli.paged {

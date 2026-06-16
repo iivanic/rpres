@@ -16,7 +16,8 @@ and a built-in HTTP server serves the deck with keyboard and click navigation.
 - **Paged mode** (`--paged`) — load each slide on demand from the server.
 - **Auto-open** (`--open`) — launch the deck in your default browser
   (Linux/BSD `xdg-open`, macOS `open`, Windows `explorer`).
-- **PDF export** (`--export`) — *experimental*; see below.
+- **Print to PDF** — the served deck carries print-friendly CSS, so
+  **Ctrl/Cmd+P → "Save as PDF"** produces one slide per page; see below.
 
 ## Installation
 
@@ -47,9 +48,6 @@ rpres --list-templates              # list available themes
 | `-l`, `--list-templates` | List available HTML templates and exit |
 | `-t`, `--template <NAME>` | Theme: `terminal`, `classic`, `modern` (default) |
 | `-p`, `--paged` | Paged mode: load each slide via AJAX |
-| `-e`, `--export <PDF>` | **[Experimental]** Export to PDF and exit |
-| `--font <TTF>` | TrueType font to embed in the exported PDF |
-| `--no-pdfa` | Disable PDF/A-1b conformance tagging when exporting |
 | `-s`, `--server <IP>` | Bind address (default `127.0.0.1`) |
 | `--port <PORT>` | Bind port (default `8080`) |
 
@@ -60,31 +58,28 @@ rpres --list-templates              # list available themes
 - Standard Markdown is supported: text formatting, lists, task lists, fenced
   code blocks, tables, blockquotes, links, and images.
 
-## PDF export (experimental)
+## Print to PDF
 
-> **⚠️ Experimental.** The PDF exporter is functional but still rough around
-> the edges. Output may change between versions and some content can be
-> clipped or simplified. Use it for drafts and review, not final artifacts.
+rpres relies on your **browser's** print engine for PDF output — this gives
+full-fidelity styling, real tables, web fonts, syntax colors, and selectable,
+zoomable text, exactly as they appear on screen.
 
-```sh
-rpres demo.md --export demo.pdf            # one slide per page, PDF/A-1b
-rpres demo.md -e out.pdf --font My.ttf     # embed a specific TrueType font
-rpres demo.md -e out.pdf --no-pdfa         # plain PDF, no archival tagging
-```
+The served deck always carries a print stylesheet, so you can turn any
+presentation into a PDF directly from the browser:
 
-What's rendered: headings, paragraphs (word-wrapped), bullet/ordered/task
-lists with nesting, monospace code blocks, tables (column-aligned), blockquotes,
-horizontal rules, and embedded local images. Fonts are subset and embedded so
-Unicode glyphs render correctly.
+1. Serve and open the deck, e.g. `rpres demo.md --open`.
+2. Open the print dialog with **Ctrl+P** (macOS: **Cmd+P**).
+3. Choose **"Save as PDF"** as the destination.
+4. Set margins to **None** and enable **Background graphics** for best results.
 
-### Known limitations
+The `@media print` rules make each slide one 16:9 page, reveal all animation
+fragments, and hide the on-screen HUD. Print from a normal (non-`--paged`)
+deck so the whole presentation is in the page.
 
-- PDF/A-1b tagging is **best-effort** — strict validator conformance is not
-  guaranteed.
-- Only **local** images (relative to the Markdown file) are embedded; remote
-  (`http`/`https`) and `data:` images show a `[image: …]` placeholder.
-- **One slide per page** — content that overflows a page is clipped.
-- Inline **bold/italic** is flattened to plain text in the PDF.
+> **Note:** `--paged` is **not** suitable for printing to PDF. In paged mode
+> only the current slide is loaded in the browser, so the print output would
+> contain just that one slide. Serve the deck without `--paged` before
+> saving to PDF.
 
 ## Development
 

@@ -70,6 +70,33 @@ body.anim li.fragment:not(.revealed) { list-style: none; }
 img { max-width: 100%; height: auto; }
 pre { overflow: auto; }
 table { border-collapse: collapse; }
+
+/* Print / "Save as PDF": one slide per page at 16:9, reveal everything. */
+@page { size: 297mm 167mm; margin: 0; }
+@media print {
+    html, body { height: auto; overflow: visible; }
+    /* The theme paints its background on <body>, which the browser does not
+       repeat per page. Re-apply it to every slide so each PDF page matches. */
+    html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #deck { position: static; width: auto; height: auto; background: inherit; }
+    .slide {
+        display: flex !important;
+        position: relative;
+        inset: auto;
+        width: 297mm;
+        height: 167mm;
+        overflow: hidden;
+        background: inherit;
+        break-after: page;
+        break-inside: avoid;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .slide:last-child { break-after: auto; }
+    body.anim .fragment:not(.revealed) { opacity: 1 !important; }
+    body.anim li.fragment:not(.revealed) { list-style: revert; }
+    #hud { display: none; }
+}
 "#;
 
 /// Navigation / animation JavaScript shared by every template.
