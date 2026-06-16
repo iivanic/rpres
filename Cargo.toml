@@ -1,0 +1,18 @@
+[package]
+name = "rpres"
+version = "0.1.0"
+edition = "2024"
+description = "A simple CLI tool that renders a Markdown file as a browser presentation"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+tiny_http = "0.12"
+pulldown-cmark = "0.12"
+
+[lib]
+name = "rpres"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rpres"
+path = "src/main.rs"
