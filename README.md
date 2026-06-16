@@ -9,8 +9,7 @@ and a built-in HTTP server serves the deck with keyboard and click navigation.
 - **Markdown → slides** — splits on `#` / `##` headings; deeper headings and
   `#` inside fenced code blocks are kept inside the slide.
 - **Three themes** — `terminal`, `classic`, and `modern` (default).
-- **Keyboard & click navigation** — arrows, `PageUp`/`PageDown`, `h`/`l`,
-  `Space`, `Home`/`End`, and `Backspace` to go back.
+- **Keyboard & click navigation** — see [Controls](#controls) below.
 - **Animation mode** (`--click`) — reveal each block, and list items one at a
   time, on space / mouse click.
 - **Paged mode** (`--paged`) — load each slide on demand from the server.
@@ -57,6 +56,20 @@ rpres --list-templates              # list available themes
 - The first `#` heading is used as the document/presentation title.
 - Standard Markdown is supported: text formatting, lists, task lists, fenced
   code blocks, tables, blockquotes, links, and images.
+
+## Controls
+
+Navigate the running presentation with the keyboard or the mouse:
+
+| Key | Action |
+| --- | --- |
+| `→`, `Space`, `Enter`, `PageDown`, `l` | Next slide / reveal next block |
+| `←`, `Backspace`, `PageUp`, `h` | Previous slide / hide last block |
+| `Home` | Jump to the first slide |
+| `End` | Jump to the last slide |
+| `a` | Toggle animation (click-to-reveal) mode |
+| `f` | Toggle fullscreen |
+| Mouse click | Advance to the next slide / block |
 
 ## Print to PDF
 

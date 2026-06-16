@@ -66,7 +66,7 @@ rpres demo.md --open --template modern
 > "Simplicity is the ultimate sophistication."
 > — Leonardo da Vinci
 
-Visit the [project repository](https://example.com/rpres) for more.
+Visit the [project repository](https://github.com/iivanic/rpres) for more.
 
 ## Images
 
@@ -83,6 +83,20 @@ Each non-empty block waits for a click.
 Like this one.
 
 And this final one.
+
+## Keyboard & Controls
+
+Navigate with the keyboard or the mouse:
+
+| Key | Action |
+| --- | --- |
+| `→` `Space` `Enter` `PageDown` `l` | Next slide / reveal next block |
+| `←` `Backspace` `PageUp` `h` | Previous slide / hide last block |
+| `Home` | Jump to the first slide |
+| `End` | Jump to the last slide |
+| `a` | Toggle animation (click-to-reveal) mode |
+| `f` | Toggle fullscreen |
+| Mouse click | Advance to the next slide / block |
 
 ## Thank You
 
