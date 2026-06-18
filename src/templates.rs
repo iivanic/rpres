@@ -138,9 +138,10 @@ pub const JS: &str = r#"
     if (i < 0 || i >= count) return;
     idx = i;
     if (paged) await loadPaged(i);
+    activate(i);
     const total = fragEls().length;
     frag = revealAll ? total : 0;
-    activate(i);
+    renderFrags();
   }
   function next() {
     const total = fragEls().length;
