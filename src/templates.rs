@@ -197,8 +197,6 @@ body {
     line-height: 1.5;
 }
 .slide-head h1, .slide-head h2 { color: #7dffa6; margin: 0 0 .6em; }
-.slide-head h1::before { content: "# "; opacity: .5; }
-.slide-head h2::before { content: "## "; opacity: .5; }
 a { color: #6cf; }
 code { background: #052105; padding: 0 .3em; border-radius: 3px; }
 pre { background: #041504; padding: 1em; border: 1px solid #1c3b1c; border-radius: 6px; }
