@@ -25,7 +25,7 @@ pub const SKELETON: &str = r#"<!DOCTYPE html>
 {{THEME_CSS}}
 </style>
 </head>
-<body data-anim="{{ANIM}}" data-paged="{{PAGED}}" data-count="{{COUNT}}">
+<body data-anim="{{ANIM}}" data-count="{{COUNT}}" data-version="{{VERSION}}">
 <div id="deck">{{DECK}}</div>
 <div id="hud"><span id="pageno"></span></div>
 <script>
@@ -37,6 +37,7 @@ pub const SKELETON: &str = r#"<!DOCTYPE html>
 
 /// Layout CSS shared by every theme.
 pub const BASE_CSS: &str = r#"
+:root { --fs-scale: 1; }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; }
 #deck { position: relative; width: 100vw; height: 100vh; }
@@ -131,11 +132,26 @@ pub const JS: &str = r#"
   const body = document.body;
   const deck = document.getElementById('deck');
   const hud = document.getElementById('pageno');
-  let anim = body.dataset.anim === '1';
-  const paged = body.dataset.paged === '1';
+  const version = body.dataset.version || '';
   const count = parseInt(body.dataset.count || '0', 10);
+  let anim = body.dataset.anim === '1';
   let idx = 0;
   let frag = 0;
+  let size = Math.min(3, Math.max(0.5, readNumber('rpres:size', 1)));
+
+  // sessionStorage keeps the position and text size across the automatic
+  // reloads triggered by hot reload, but is unavailable in some contexts.
+  function readNumber(key, fallback) {
+    try {
+      const value = parseFloat(sessionStorage.getItem(key) || '');
+      return isFinite(value) ? value : fallback;
+    } catch (err) {
+      return fallback;
+    }
+  }
+  function save(key, value) {
+    try { sessionStorage.setItem(key, value); } catch (err) { /* ignore */ }
+  }
 
   function applyAnimClass() { body.classList.toggle('anim', anim); }
   function curSlide() {
@@ -175,22 +191,34 @@ pub const JS: &str = r#"
     bodyEl.style.transform = scale < 1 ? 'scale(' + scale + ')' : 'none';
   }
   function scheduleFit() { requestAnimationFrame(fitSlide); }
-  function updateHud() { hud.textContent = (idx + 1) + ' / ' + count; }
+  // Text size is a multiplier on the theme's font size, so it scales the whole
+  // deck without fighting the per-slide autofit.
+  function applySize() {
+    document.documentElement.style.setProperty('--fs-scale', String(size));
+    save('rpres:size', String(size));
+    updateHud();
+    scheduleFit();
+  }
+  function changeSize(factor) {
+    const next = Math.min(3, Math.max(0.5, size * factor));
+    size = Math.round(next * 100) / 100;
+    applySize();
+  }
+  function updateHud() {
+    const pct = Math.round(size * 100);
+    hud.textContent = (idx + 1) + ' / ' + count + (pct === 100 ? '' : ' · ' + pct + '%');
+  }
   function activate(i) {
     const slides = deck.querySelectorAll('.slide');
-    slides.forEach((s, k) => s.classList.toggle('active', paged ? true : k === i));
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
     renderFrags();
     updateHud();
     scheduleFit();
   }
-  async function loadPaged(i) {
-    const res = await fetch('/slide/' + i);
-    deck.innerHTML = await res.text();
-  }
-  async function go(i, revealAll) {
+  function go(i, revealAll) {
     if (i < 0 || i >= count) return;
     idx = i;
-    if (paged) await loadPaged(i);
+    save('rpres:slide', String(idx));
     activate(i);
     const total = fragEls().length;
     frag = revealAll ? total : 0;
@@ -207,6 +235,8 @@ pub const JS: &str = r#"
   }
 
   document.addEventListener('keydown', (e) => {
+    // Leave browser shortcuts (Ctrl/Cmd +/- zoom, ...) alone.
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     switch (e.key) {
       case 'ArrowRight':
       case 'PageDown':
@@ -230,6 +260,14 @@ pub const JS: &str = r#"
         if (!document.fullscreenElement) document.documentElement.requestFullscreen();
         else document.exitFullscreen();
         break;
+      case '+':
+      case '=':
+        e.preventDefault(); changeSize(1.1); break;
+      case '-':
+      case '_':
+        e.preventDefault(); changeSize(1 / 1.1); break;
+      case '0':
+        e.preventDefault(); size = 1; applySize(); break;
     }
   });
   document.addEventListener('click', (e) => {
@@ -244,8 +282,22 @@ pub const JS: &str = r#"
     if (e.target && e.target.tagName === 'IMG') scheduleFit();
   }, true);
 
+  // Hot reload: the server re-renders the deck when the Markdown file changes
+  // and bumps this version, which tells us to fetch the fresh page.
+  function watchSource() {
+    if (!version) return;
+    setInterval(async () => {
+      try {
+        const res = await fetch('/version', { cache: 'no-store' });
+        if (res.ok && (await res.text()) !== version) location.reload();
+      } catch (err) { /* server busy; try again on the next tick */ }
+    }, 750);
+  }
+
   applyAnimClass();
-  go(0, false);
+  applySize();
+  go(Math.min(readNumber('rpres:slide', 0), Math.max(0, count - 1)), false);
+  watchSource();
 })();
 "#;
 
@@ -254,7 +306,7 @@ body {
     background: #0b0e0b;
     color: #33ff66;
     font-family: "SFMono-Regular", "JetBrains Mono", Consolas, monospace;
-    font-size: 2.6vh;
+    font-size: calc(2.6vh * var(--fs-scale));
     line-height: 1.5;
 }
 .slide-head h1, .slide-head h2 { color: #7dffa6; margin: 0 0 .6em; }
@@ -263,7 +315,7 @@ code { background: #052105; padding: 0 .3em; border-radius: 3px; }
 pre { background: #041504; padding: 1em; border: 1px solid #1c3b1c; border-radius: 6px; }
 pre code { background: none; padding: 0; }
 blockquote { border-left: .18em solid #2a7a3f; margin: .5em 0; padding-left: 1em; color: #9bdca8; }
-th, td { border: 1px solid #2a7a3f; padding: .3em .7em; }
+th, td { border: .04em solid #2a7a3f; padding: .3em .7em; }
 #hud { color: #33ff66; }
 "###;
 
@@ -272,7 +324,7 @@ body {
     background: #fffdf7;
     color: #222;
     font-family: Georgia, "Times New Roman", serif;
-    font-size: 2.7vh;
+    font-size: calc(2.7vh * var(--fs-scale));
     line-height: 1.55;
 }
 .slide-head h1 { color: #8a1f2b; margin: 0 0 .4em; font-size: 2em; }
@@ -282,7 +334,7 @@ code { background: #f0ece0; padding: 0 .3em; border-radius: 3px; font-family: Co
 pre { background: #f4f0e6; padding: 1em; border: 1px solid #ddd6c4; border-radius: 4px; }
 pre code { background: none; }
 blockquote { border-left: .22em solid #c9b27a; margin: .5em 0; padding-left: 1em; font-style: italic; color: #555; }
-th, td { border: 1px solid #ccc4ac; padding: .35em .8em; }
+th, td { border: .04em solid #ccc4ac; padding: .35em .8em; }
 th { background: #efe9d8; }
 #hud { color: #555; }
 "#;
@@ -292,7 +344,7 @@ body {
     background: radial-gradient(circle at 30% 20%, #1e293b, #0f172a 70%);
     color: #e5edf5;
     font-family: "Inter", "Segoe UI", system-ui, sans-serif;
-    font-size: 2.7vh;
+    font-size: calc(2.7vh * var(--fs-scale));
     line-height: 1.6;
 }
 .slide-head h1 {
@@ -309,7 +361,7 @@ code { background: rgba(148,163,184,.18); padding: .05em .35em; border-radius: 4
 pre { background: rgba(15,23,42,.7); padding: 1em; border: 1px solid rgba(148,163,184,.25); border-radius: 10px; }
 pre code { background: none; padding: 0; }
 blockquote { border-left: .22em solid #a78bfa; margin: .5em 0; padding-left: 1em; color: #c4b5fd; }
-th, td { border: 1px solid rgba(148,163,184,.3); padding: .4em .8em; }
+th, td { border: .04em solid rgba(148,163,184,.3); padding: .4em .8em; }
 th { background: rgba(148,163,184,.12); }
 #hud { color: #94a3b8; }
 "#;

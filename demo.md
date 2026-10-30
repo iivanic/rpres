@@ -96,6 +96,7 @@ Navigate with the keyboard or the mouse:
 | `End` | Jump to the last slide |
 | `a` | Toggle animation (click-to-reveal) mode |
 | `f` | Toggle fullscreen |
+| `+` `-` `0` | Grow / shrink / reset the text size |
 | Mouse click | Advance to the next slide / block |
 
 ## Thank You
@@ -103,5 +104,5 @@ Navigate with the keyboard or the mouse:
 Thanks for trying **rpres**!
 
 - Built with Rust, clap, tiny_http and pulldown-cmark
-- Three templates, paged & single-page modes
+- Three templates, hot reload and live text sizing
 - Keyboard and mouse navigation

@@ -12,7 +12,11 @@ and a built-in HTTP server serves the deck with keyboard and click navigation.
 - **Keyboard & click navigation** — see [Controls](#controls) below.
 - **Animation mode** (`--click`) — reveal each block, and list items one at a
   time, on space / mouse click.
-- **Paged mode** (`--paged`) — load each slide on demand from the server.
+- **Hot reload** — edit the Markdown while serving and the open browser tab
+  reloads by itself, staying on the slide you were looking at.
+- **Text size control** — `+`, `-` and `0` resize the deck on the fly.
+- **Local images** — files next to the Markdown source (images, fonts, …) are
+  served by the built-in server, so relative paths just work.
 - **Auto-open** (`--open`) — launch the deck in your default browser
   (Linux/BSD `xdg-open`, macOS `open`, Windows `explorer`).
 - **Print to PDF** — the served deck carries print-friendly CSS, so
@@ -32,7 +36,6 @@ rpres demo.md                       # serve on http://127.0.0.1:8080
 rpres demo.md --open                # serve and open the browser
 rpres demo.md -t terminal           # use the terminal theme
 rpres demo.md --click               # reveal blocks on click/space
-rpres demo.md --paged               # load slides on demand
 rpres demo.md -s 0.0.0.0 --port 9000  # bind address / port
 rpres --list-templates              # list available themes
 ```
@@ -46,7 +49,6 @@ rpres --list-templates              # list available themes
 | `-o`, `--open` | Open the presentation in the default browser |
 | `-l`, `--list-templates` | List available HTML templates and exit |
 | `-t`, `--template <NAME>` | Theme: `terminal`, `classic`, `modern` (default) |
-| `-p`, `--paged` | Paged mode: load each slide via AJAX |
 | `-s`, `--server <IP>` | Bind address (default `127.0.0.1`) |
 | `--port <PORT>` | Bind port (default `8080`) |
 
@@ -56,6 +58,13 @@ rpres --list-templates              # list available themes
 - The first `#` heading is used as the document/presentation title.
 - Standard Markdown is supported: text formatting, lists, task lists, fenced
   code blocks, tables, blockquotes, links, and images.
+
+### Images
+
+Images are served by rpres itself, relative to the directory of the Markdown
+file. For a deck at `talks/demo.md`, `![logo](img/logo.png)` is looked up at
+`talks/img/logo.png`; remote `http(s)://` URLs are loaded by the browser as
+usual.
 
 ## Controls
 
@@ -69,7 +78,14 @@ Navigate the running presentation with the keyboard or the mouse:
 | `End` | Jump to the last slide |
 | `a` | Toggle animation (click-to-reveal) mode |
 | `f` | Toggle fullscreen |
+| `+`, `=` | Increase the text size |
+| `-`, `_` | Decrease the text size |
+| `0` | Reset the text size to the default |
 | Mouse click | Advance to the next slide / block |
+
+The text size is a multiplier on the theme's font size and is shown in the
+page counter while it is not 100%. It survives the automatic reloads, just
+like the current slide.
 
 ## Print to PDF
 
@@ -86,13 +102,7 @@ presentation into a PDF directly from the browser:
 4. Set margins to **None** and enable **Background graphics** for best results.
 
 The `@media print` rules make each slide one 16:9 page, reveal all animation
-fragments, and hide the on-screen HUD. Print from a normal (non-`--paged`)
-deck so the whole presentation is in the page.
-
-> **Note:** `--paged` is **not** suitable for printing to PDF. In paged mode
-> only the current slide is loaded in the browser, so the print output would
-> contain just that one slide. Serve the deck without `--paged` before
-> saving to PDF.
+fragments, and hide the on-screen HUD.
 
 ## Development
 

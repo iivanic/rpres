@@ -3,6 +3,7 @@
 use crate::slides::Slide;
 use crate::templates::{BASE_CSS, JS, SKELETON, theme_css};
 use pulldown_cmark::{Event, Options, Parser, html};
+use std::path::Path;
 
 fn options() -> Options {
     let mut opts = Options::empty();
@@ -115,28 +116,42 @@ pub fn render_deck(slides: &[Slide]) -> String {
     slides.iter().map(slide_html).collect()
 }
 
+/// Pick the document title: the first title slide's header, falling back to
+/// the source file name.
+pub fn deck_title(slides: &[Slide], path: &Path) -> String {
+    slides
+        .iter()
+        .find(|s| s.is_title())
+        .map(|s| s.title.clone())
+        .filter(|t| !t.is_empty())
+        .unwrap_or_else(|| {
+            path.file_stem()
+                .map(|s| s.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "rpres".to_string())
+        })
+}
+
 /// Build the full HTML page.
 ///
-/// In default (non-paged) mode the deck is filled with all slides. In paged
-/// mode the deck starts empty and slides are fetched over AJAX.
+/// `version` identifies the rendered source so the browser can detect that the
+/// Markdown file changed and reload itself.
 pub fn build_page(
     title: &str,
     template: &str,
     slides: &[Slide],
     anim: bool,
-    paged: bool,
+    version: &str,
 ) -> String {
     let theme = theme_css(template).unwrap_or_else(|| theme_css("modern").unwrap());
-    let deck = if paged { String::new() } else { render_deck(slides) };
 
     SKELETON
         .replace("{{TITLE}}", &escape_html(title))
         .replace("{{BASE_CSS}}", BASE_CSS)
         .replace("{{THEME_CSS}}", theme)
         .replace("{{ANIM}}", if anim { "1" } else { "0" })
-        .replace("{{PAGED}}", if paged { "1" } else { "0" })
         .replace("{{COUNT}}", &slides.len().to_string())
-        .replace("{{DECK}}", &deck)
+        .replace("{{VERSION}}", &escape_html(version))
+        .replace("{{DECK}}", &render_deck(slides))
         .replace("{{JS}}", JS)
 }
 
@@ -207,27 +222,26 @@ mod tests {
     }
 
     #[test]
-    fn page_embeds_slides_in_default_mode() {
+    fn page_embeds_all_slides() {
         let slides = parse_slides("# T\n\n## One\nx\n");
-        let page = build_page("T", "modern", &slides, false, false);
+        let page = build_page("T", "modern", &slides, false, "v1");
         assert!(page.contains("data-count=\"2\""));
-        assert!(page.contains("data-paged=\"0\""));
+        assert!(page.contains("data-version=\"v1\""));
         assert!(page.contains("<section class=\"slide title\">"));
-    }
-
-    #[test]
-    fn page_is_empty_in_paged_mode() {
-        let slides = parse_slides("# T\n\n## One\nx\n");
-        let page = build_page("T", "terminal", &slides, false, true);
-        assert!(page.contains("data-paged=\"1\""));
-        assert!(page.contains("<div id=\"deck\"></div>"));
     }
 
     #[test]
     fn unknown_template_falls_back_to_modern() {
         let slides = parse_slides("# T\n");
-        let page = build_page("T", "nope", &slides, false, false);
+        let page = build_page("T", "nope", &slides, false, "v1");
         // modern theme uses a gradient background
         assert!(page.contains("radial-gradient"));
+    }
+
+    #[test]
+    fn title_falls_back_to_file_stem() {
+        let slides = parse_slides("plain text\n");
+        let title = deck_title(&slides, Path::new("/tmp/talk.md"));
+        assert_eq!(title, "talk");
     }
 }

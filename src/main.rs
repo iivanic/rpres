@@ -1,8 +1,6 @@
 use clap::Parser;
 use rpres::cli::Cli;
-use rpres::render::{build_page, slide_html};
-use rpres::server::{App, serve};
-use rpres::slides::parse_slides;
+use rpres::server::{Deck, serve};
 use rpres::templates::{TEMPLATES, theme_css};
 use std::process::ExitCode;
 
@@ -34,36 +32,12 @@ fn main() -> ExitCode {
         }
     };
 
-    let markdown = match std::fs::read_to_string(path) {
-        Ok(text) => text,
+    let deck = match Deck::new(path, &cli.template, cli.click) {
+        Ok(deck) => deck,
         Err(err) => {
-            eprintln!("error: could not read '{}': {err}", path.display());
+            eprintln!("error: {err}");
             return ExitCode::FAILURE;
         }
-    };
-
-    let slides = parse_slides(&markdown);
-    if slides.is_empty() {
-        eprintln!("error: '{}' contains no slides", path.display());
-        return ExitCode::FAILURE;
-    }
-
-    let title = slides
-        .iter()
-        .find(|s| s.is_title())
-        .map(|s| s.title.clone())
-        .filter(|t| !t.is_empty())
-        .unwrap_or_else(|| {
-            path.file_stem()
-                .map(|s| s.to_string_lossy().into_owned())
-                .unwrap_or_else(|| "rpres".to_string())
-        });
-
-    let page = build_page(&title, &cli.template, &slides, cli.click, cli.paged);
-    let slide_fragments = if cli.paged {
-        slides.iter().map(slide_html).collect()
-    } else {
-        Vec::new()
     };
 
     let addr = format!("{}:{}", cli.server, cli.port);
@@ -76,26 +50,24 @@ fn main() -> ExitCode {
 
     println!(
         "rpres: {} slide(s), template '{}', serving on {}",
-        slides.len(),
+        deck.slide_count(),
         cli.template,
         url
     );
-    if cli.paged {
-        println!("rpres: paged mode (slides loaded over AJAX)");
-    }
-    println!("rpres: press 'a' to toggle animation, arrows/space to navigate, Ctrl+C to quit");
+    println!(
+        "rpres: watching '{}' — the browser reloads when it changes",
+        path.display()
+    );
+    println!(
+        "rpres: press 'a' to toggle animation, '+/-/0' to resize text, \
+         arrows/space to navigate, Ctrl+C to quit"
+    );
 
     if cli.open {
         open_browser(&url);
     }
 
-    let app = App {
-        page,
-        slides: slide_fragments,
-        paged: cli.paged,
-    };
-
-    if let Err(err) = serve(&addr, app) {
+    if let Err(err) = serve(&addr, deck) {
         eprintln!("error: server failed: {err}");
         return ExitCode::FAILURE;
     }

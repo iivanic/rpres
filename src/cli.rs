@@ -27,10 +27,6 @@ pub struct Cli {
     #[arg(short = 't', long = "template", default_value = "modern")]
     pub template: String,
 
-    /// Paged mode: load each slide from the server via AJAX.
-    #[arg(short = 'p', long = "paged")]
-    pub paged: bool,
-
     /// IP address to bind the server to.
     #[arg(short = 's', long = "server", default_value = "127.0.0.1")]
     pub server: String,
