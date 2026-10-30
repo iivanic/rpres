@@ -134,24 +134,25 @@ pub const JS: &str = r#"
   const hud = document.getElementById('pageno');
   const version = body.dataset.version || '';
   const count = parseInt(body.dataset.count || '0', 10);
-  let anim = body.dataset.anim === '1';
-  let idx = 0;
-  let frag = 0;
-  let size = Math.min(3, Math.max(0.5, readNumber('rpres:size', 1)));
-
-  // sessionStorage keeps the position and text size across the automatic
-  // reloads triggered by hot reload, but is unavailable in some contexts.
-  function readNumber(key, fallback) {
-    try {
-      const value = parseFloat(sessionStorage.getItem(key) || '');
-      return isFinite(value) ? value : fallback;
-    } catch (err) {
-      return fallback;
-    }
+  // sessionStorage keeps the presentation state across the automatic reloads
+  // triggered by hot reload, but is unavailable in some contexts (blocked
+  // storage, some file:// setups), hence the try/catch everywhere.
+  function load(key) {
+    try { return sessionStorage.getItem(key); } catch (err) { return null; }
+  }
+  function loadNumber(key, fallback) {
+    const value = parseFloat(load(key) || '');
+    return isFinite(value) ? value : fallback;
   }
   function save(key, value) {
     try { sessionStorage.setItem(key, value); } catch (err) { /* ignore */ }
   }
+
+  const storedAnim = load('rpres:anim');
+  let anim = storedAnim === null ? body.dataset.anim === '1' : storedAnim === '1';
+  let size = Math.min(3, Math.max(0.5, loadNumber('rpres:size', 1)));
+  let idx = 0;
+  let frag = 0;
 
   function applyAnimClass() { body.classList.toggle('anim', anim); }
   function curSlide() {
@@ -199,6 +200,13 @@ pub const JS: &str = r#"
     updateHud();
     scheduleFit();
   }
+  // Persist everything a hot reload has to restore: slide, revealed blocks and
+  // whether click mode is on.
+  function saveState() {
+    save('rpres:slide', String(idx));
+    save('rpres:frag', String(frag));
+    save('rpres:anim', anim ? '1' : '0');
+  }
   function changeSize(factor) {
     const next = Math.min(3, Math.max(0.5, size * factor));
     size = Math.round(next * 100) / 100;
@@ -218,19 +226,19 @@ pub const JS: &str = r#"
   function go(i, revealAll) {
     if (i < 0 || i >= count) return;
     idx = i;
-    save('rpres:slide', String(idx));
     activate(i);
     const total = fragEls().length;
     frag = revealAll ? total : 0;
     renderFrags();
+    saveState();
   }
   function next() {
     const total = fragEls().length;
-    if (anim && frag < total) { frag++; renderFrags(); return; }
+    if (anim && frag < total) { frag++; renderFrags(); saveState(); return; }
     go(idx + 1, false);
   }
   function prev() {
-    if (anim && frag > 0) { frag--; renderFrags(); return; }
+    if (anim && frag > 0) { frag--; renderFrags(); saveState(); return; }
     go(idx - 1, true);
   }
 
@@ -254,7 +262,8 @@ pub const JS: &str = r#"
       case 'a':
       case 'A':
         anim = !anim; applyAnimClass();
-        frag = anim ? 0 : fragEls().length; renderFrags(); break;
+        frag = anim ? 0 : fragEls().length;
+        renderFrags(); saveState(); break;
       case 'f':
       case 'F':
         if (!document.fullscreenElement) document.documentElement.requestFullscreen();
@@ -296,7 +305,15 @@ pub const JS: &str = r#"
 
   applyAnimClass();
   applySize();
-  go(Math.min(readNumber('rpres:slide', 0), Math.max(0, count - 1)), false);
+  // Read the saved progress before go() overwrites it. The reveal count is
+  // clamped, because the edited slide may hold fewer blocks now.
+  const resumeFrag = loadNumber('rpres:frag', 0);
+  go(Math.min(loadNumber('rpres:slide', 0), Math.max(0, count - 1)), false);
+  if (anim) {
+    frag = Math.min(resumeFrag, fragEls().length);
+    renderFrags();
+    saveState();
+  }
   watchSource();
 })();
 "#;

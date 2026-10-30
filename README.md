@@ -13,7 +13,7 @@ and a built-in HTTP server serves the deck with keyboard and click navigation.
 - **Animation mode** (`--click`) — reveal each block, and list items one at a
   time, on space / mouse click.
 - **Hot reload** — edit the Markdown while serving and the open browser tab
-  reloads by itself, staying on the slide you were looking at.
+  reloads by itself, keeping your place.
 - **Text size control** — `+`, `-` and `0` resize the deck on the fly.
 - **Local images** — files next to the Markdown source (images, fonts, …) are
   served by the built-in server, so relative paths just work.
@@ -84,8 +84,12 @@ Navigate the running presentation with the keyboard or the mouse:
 | Mouse click | Advance to the next slide / block |
 
 The text size is a multiplier on the theme's font size and is shown in the
-page counter while it is not 100%. It survives the automatic reloads, just
-like the current slide.
+page counter while it is not 100%.
+
+Hot reload keeps the frontend state: after the automatic reload you are back
+on the same slide, with the same blocks revealed, the same click/animation
+mode and the same text size. State is held in the tab's `sessionStorage`, so
+it is per browser tab and disappears when the tab is closed.
 
 ## Print to PDF
 
